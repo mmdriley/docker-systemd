@@ -1,0 +1,53 @@
+#!/bin/bash
+# mitigate https://github.com/moby/moby/issues/38420
+
+set -o errexit -o nounset -o pipefail
+
+
+# Need to mount securityfs for apparmor_parser to talk to.
+mount -tsecurityfs securityfs /sys/kernel/security
+
+
+# http://manpages.ubuntu.com/manpages/bionic/man8/apparmor_parser.8.html
+
+apparmor_parser --replace --Complain <<APPARMOR_PROFILE
+# This profile should behave equivalently to "unconfined".
+
+# References:
+#   http://manpages.ubuntu.com/manpages/bionic/en/man5/apparmor.d.5.html
+#   https://doc.opensuse.org/documentation/leap/security/html/book.security/cha.apparmor.profiles.html#sec.apparmor.profiles.types
+#   https://github.com/moby/moby/pull/14855/files#diff-39850b067ccf6524e57e44db5ab354b1
+# attach_disconnected is crucial to mitigate the actual bug.
+
+profile explicitly-unconfined flags=(attach_disconnected,mediate_deleted) {
+  capability,
+  change_profile -> **,
+  dbus,
+  file,
+  mount,
+  network,
+  pivot_root,
+  ptrace,
+  signal,
+  umount,
+  unix,
+}
+APPARMOR_PROFILE
+
+
+# Done with securityfs; unmount it.
+umount /sys/kernel/security
+
+
+# Change to the new AppArmor profile.
+# https://gitlab.com/apparmor/apparmor/wikis/AppArmorInterfaces#writing-the-procpidattr-files
+
+echo "Current AppArmor profile: $(cat /proc/self/attr/current)"
+echo -n "Changing AppArmor profile... "
+printf 'changeprofile explicitly-unconfined\0' > /proc/self/attr/current
+echo "done."
+echo "New AppArmor profile: $(cat /proc/self/attr/current)"
+
+
+# Continue with the command we were given.
+exec "$@"
