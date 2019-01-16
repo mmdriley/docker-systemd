@@ -7,6 +7,8 @@ set -o errexit -o nounset -o pipefail
 # Need to mount securityfs for apparmor_parser to talk to.
 mount -tsecurityfs securityfs /sys/kernel/security
 
+# We might want to use `trap ... EXIT` to umount securityfs, but EXIT traps
+# don't run when the shell is replaced with `exec`.
 
 # http://manpages.ubuntu.com/manpages/bionic/man8/apparmor_parser.8.html
 
@@ -42,11 +44,11 @@ umount /sys/kernel/security
 # Change to the new AppArmor profile.
 # https://gitlab.com/apparmor/apparmor/wikis/AppArmorInterfaces#writing-the-procpidattr-files
 
-echo "Current AppArmor profile: $(cat /proc/self/attr/current)"
+echo "Current AppArmor profile: $(< /proc/self/attr/current)"
 echo -n "Changing AppArmor profile... "
-printf 'changeprofile explicitly-unconfined\0' > /proc/self/attr/current
+echo -ne 'changeprofile explicitly-unconfined\0' > /proc/self/attr/current
 echo "done."
-echo "New AppArmor profile: $(cat /proc/self/attr/current)"
+echo "New AppArmor profile: $(< /proc/self/attr/current)"
 
 
 # Continue with the command we were given.

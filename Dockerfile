@@ -27,7 +27,7 @@ RUN systemctl disable apparmor
 STOPSIGNAL SIGRTMIN+3
 
 # occasionally used for testing; egregiously bad for security.
-# RUN printf 'hello\nhello\n' | passwd
+# RUN echo -ne 'hello\nhello\n' | passwd
 
 COPY mitigate_38420 /usr/local/bin/
 CMD ["/usr/local/bin/mitigate_38420", "/sbin/init"]
