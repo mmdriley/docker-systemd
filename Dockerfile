@@ -11,7 +11,7 @@ ENV container docker
 RUN yes | unminimize && \
     apt-get update && \
     apt-get install -y \
-        augeas \
+        augeas-tools \
         systemd \
         && \
     rm -rf /var/lib/apt/lists/*
@@ -36,7 +36,7 @@ RUN augtool set /files/etc/ssh/sshd_config/Port "$SSH_PORT"
 # Create $SSH_USER with the password "notasecret".
 # Force password change on first login.
 RUN useradd --create-home --shell /bin/bash --groups sudo "$SSH_USER" && \
-    echo -ne 'notasecret\nnotasecret\n' | passwd "$SSH_USER" && \
+    echo -n 'notasecret\nnotasecret\n' | passwd "$SSH_USER" && \
     passwd --expire "$SSH_USER"
 
 COPY mitigate_38420 /usr/local/bin/
