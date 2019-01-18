@@ -11,6 +11,7 @@ ENV container docker
 RUN yes | unminimize && \
     apt-get update && \
     apt-get install -y \
+        augeas \
         systemd \
         && \
     rm -rf /var/lib/apt/lists/*
@@ -26,8 +27,18 @@ RUN systemctl disable apparmor
 # http://man7.org/linux/man-pages/man1/systemd.1.html#SIGNALS
 STOPSIGNAL SIGRTMIN+3
 
-# occasionally used for testing; egregiously bad for security.
-# RUN echo -ne 'hello\nhello\n' | passwd
+ENV SSH_USER matthew
+ENV SSH_PORT 2222
+
+# Change sshd to listen on $SSH_PORT.
+RUN augtool set /files/etc/ssh/sshd_config/Port "$SSH_PORT"
+
+# Create $SSH_USER with the password "notasecret".
+# Force password change on first login.
+RUN useradd --create-home --shell /bin/bash --groups sudo "$SSH_USER" && \
+    echo -ne 'notasecret\nnotasecret\n' | passwd "$SSH_USER" && \
+    passwd --expire "$SSH_USER"
 
 COPY mitigate_38420 /usr/local/bin/
+
 CMD ["/usr/local/bin/mitigate_38420", "/sbin/init"]
