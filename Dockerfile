@@ -9,9 +9,12 @@ ENV container docker
 # https://wiki.ubuntu.com/Minimal
 # https://docs.docker.com/develop/develop-images/dockerfile_best-practices/#run
 RUN yes | unminimize && \
-    apt-get update && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
     apt-get install -y \
         augeas-tools \
+        openssh-server \
         systemd \
         && \
     rm -rf /var/lib/apt/lists/*
